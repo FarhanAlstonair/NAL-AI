@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: nal_india
+      MYSQL_ROOT_PASSWORD: 88581
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DB_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+      - ELASTICSEARCH_URL=elasticsearch:9200
+    depends_on:
+      - db
+      - redis
+      - elasticsearch
+    volumes:
+      - .:/app
+
+  celery:
+    build: .
+    command: celery -A nal_backend worker -l info
+    environment:
+      - DEBUG=True
+      - DB_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app
+
+  celery-beat:
+    build: .
+    command: celery -A nal_backend beat -l info
+    environment:
+      - DEBUG=True
+      - DB_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app
+
+volumes:
+  mysql_data:
+  es_data:

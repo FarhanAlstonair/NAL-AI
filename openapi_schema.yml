@@ -1,0 +1,296 @@
+openapi: 3.0.1
+info:
+  title: NAL India API
+  description: Property marketplace and verification platform
+  version: "1.0.0"
+  contact:
+    name: NAL India
+    email: api@nalindia.com
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://api.nalindia.com/api/v1
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        errors:
+          type: array
+          items:
+            type: string
+
+    User:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        role:
+          type: string
+          enum: [BUYER, SELLER, AGENT, ADMIN, VERIFIER, SYSTEM]
+
+    Property:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        currency:
+          type: string
+        property_type:
+          type: string
+        status:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+
+paths:
+  /auth/login:
+    post:
+      summary: User login
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                device_id:
+                  type: string
+                device_type:
+                  type: string
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      access:
+                        type: string
+                      refresh:
+                        type: string
+                      user:
+                        $ref: '#/components/schemas/User'
+
+  /auth/register:
+    post:
+      summary: User registration
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                username:
+                  type: string
+                password:
+                  type: string
+                password_confirm:
+                  type: string
+                phone:
+                  type: string
+                role:
+                  type: string
+      responses:
+        "201":
+          description: Registration successful
+
+  /properties:
+    get:
+      summary: List properties
+      tags: [Properties]
+      security: []
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Search query
+        - in: query
+          name: city
+          schema:
+            type: string
+        - in: query
+          name: property_type
+          schema:
+            type: string
+        - in: query
+          name: min_price
+          schema:
+            type: number
+        - in: query
+          name: max_price
+          schema:
+            type: number
+        - in: query
+          name: lat
+          schema:
+            type: number
+        - in: query
+          name: lng
+          schema:
+            type: number
+        - in: query
+          name: radius
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Properties list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      properties:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Property'
+
+    post:
+      summary: Create property
+      tags: [Properties]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                property_type:
+                  type: string
+                address:
+                  type: string
+                city:
+                  type: string
+                state:
+                  type: string
+      responses:
+        "201":
+          description: Property created
+
+  /properties/{id}:
+    get:
+      summary: Get property details
+      tags: [Properties]
+      security: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Property details
+
+  /bookings/create:
+    post:
+      summary: Create booking
+      tags: [Bookings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                property_id:
+                  type: string
+                  format: uuid
+                booking_date:
+                  type: string
+                  format: date
+                booking_time:
+                  type: string
+                  format: time
+                contact_name:
+                  type: string
+                contact_phone:
+                  type: string
+      responses:
+        "201":
+          description: Booking created
+
+  /payments/initiate:
+    post:
+      summary: Initiate payment
+      tags: [Payments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                transaction_type:
+                  type: string
+                property_id:
+                  type: string
+                  format: uuid
+      responses:
+        "201":
+          description: Payment initiated
